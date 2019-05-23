@@ -1,7 +1,22 @@
 <resources>
   <string name="app_name">FizzBuzz</string>
   <string name="mockup_value">##</string>
+
   <string name="play">PLAY</string>
   <string name="pause">PAUSE</string>
   <string name="settings">SETTINGS</string>
+
+  <string name="time_limit_key">time_limit</string>
+  <string name="time_limit_title">Time limit</string>
+  <string name="time_limit_summary">Seconds each value is displayed</string>
+
+  <string name="num_digits_key">max_value</string>
+  <string name="num_digits_title">Maximum value</string>
+  <string name="num_digits_summary">Maximum value displayed in game</string>
+
+  <string name="game_time_key">max_value</string>
+  <string name="game_time_title">Game Duration</string>
+  <string name="game_time_summary">Duration of game time</string>
+
+
 </resources>
