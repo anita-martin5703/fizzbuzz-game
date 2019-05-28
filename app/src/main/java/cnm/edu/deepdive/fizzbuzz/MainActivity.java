@@ -1,20 +1,29 @@
 package cnm.edu.deepdive.fizzbuzz;
 
 import android.content.Intent;
+import android.preference.PreferenceManager;
 import android.util.Log;
+import android.view.GestureDetector;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.MotionEvent;
+import android.view.View;
+import android.view.View.OnTouchListener;
+import android.view.ViewGroup;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
+import androidx.core.view.GestureDetectorCompat;
 import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
 
 public class MainActivity extends AppCompatActivity {
 
+  private Random rng = new Random();
   private int value;
   private TextView valueDisplay;
+  private ViewGroup valueContainer;
   private Timer timer;
   private boolean running;
 
@@ -24,6 +33,18 @@ public class MainActivity extends AppCompatActivity {
     super.onCreate(savedInstanceState);
     setContentView(R.layout.activity_main);
     valueDisplay = findViewById(R.id.value_display);
+    valueContainer = findViewById(R.id.value_container);
+    GestureDetectorCompat detector = new GestureDetectorCompat(this, new FlingListener());
+    valueContainer.setOnTouchListener(new OnTouchListener() {
+      @Override
+      public boolean onTouch(View v, MotionEvent event) {
+        if (!detector.onTouchEvent(event) && event.getActionMasked() == MotionEvent.ACTION_UP){
+          valueContainer.setTranslationX(0);
+          valueContainer.setTranslationY(0);
+        }
+        return true;
+      }
+    });
     Log.d("Trace", "Leaving onCreate");
   }
 
@@ -56,7 +77,7 @@ public class MainActivity extends AppCompatActivity {
   }
 
   @Override
-    protected void onPause() {
+  protected void onPause() {
     Log.d("Trace", "Starting onPause");
     super.onPause();
     Log.d("Trace", "Leaving onPause");
@@ -126,7 +147,7 @@ public class MainActivity extends AppCompatActivity {
     return handled;
   }
 
-  private void pauseGame () {
+  private void pauseGame() {
     running = false;
     if (timer != null) {
       timer.cancel();
@@ -137,26 +158,72 @@ public class MainActivity extends AppCompatActivity {
     invalidateOptionsMenu();
   }
 
-  private void resumeGame () {
+  private void resumeGame() {
     running = true;
-    timer = new Timer();
-    timer.schedule(new RandomValueTask(), 0, 3000); // FIXME This should read preferences.
-    //TODO Update an necessary fields, timer, and menu
+    if (timer != null){
+      timer.cancel();
+    }
+    int timeLimit = PreferenceManager.getDefaultSharedPreferences(this)
+        .getInt(getString(R.string.time_limit_key),
+            getResources().getInteger(R.integer.time_limit_default));
+    updateValue();
+    if (timeLimit != 0) {
+      timer = new Timer();
+      timer.schedule(new TimeoutTask(), timeLimit * 1000);
+    }
+    // TODO Update any necessary fields, timer, & menu.
     invalidateOptionsMenu();
   }
 
-  private class RandomValueTask extends TimerTask {
 
-    private Random rng = new Random();
+  private void updateValue() {
+    int numDigits = PreferenceManager.getDefaultSharedPreferences(this)
+        .getInt(getString(R.string.num_digits_key),
+            getResources().getInteger(R.integer.num_digits_default));
+    int limit = (int) Math.pow(10, numDigits) - 1;
+    value = 1 + rng.nextInt(limit);
+    valueContainer.setTranslationX(0);
+    valueContainer.setTranslationY(0);
+    valueDisplay.setText(Integer.toString(value));
+  }
+
+  private class TimeoutTask extends TimerTask {
 
     @Override
     public void run() {
       Log.d("Trace", "Entering run");
-      value = rng.nextInt(100);
-      runOnUiThread(() -> valueDisplay.setText(Integer.toString(value)));
+      runOnUiThread(() -> resumeGame());
       Log.d("Trace", "Leaving run");
     }
 
+  }
+
+  private class FlingListener extends GestureDetector.SimpleOnGestureListener{
+
+    private float originX;
+    private float originY;
+
+    @Override
+    public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
+      valueContainer.setTranslationX(e2.getX() - originX);
+      valueContainer.setTranslationY(e2.getY() - originY);
+      return true;
+    }
+
+    @Override
+    public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+      //TODO Detect if it really is a fling, and in which direction; then, update tally.
+      Log.d("Trace", e2.toString());
+      resumeGame();
+      return true;
+    }
+
+    @Override
+    public boolean onDown(MotionEvent evt) {
+      originX = evt.getX();
+      originY = evt.getY();
+      return true;
+    }
   }
 
 }
